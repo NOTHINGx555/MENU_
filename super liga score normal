@@ -1,0 +1,598 @@
+-- Function to create the UI
+local function createUI()
+    -- Check if the UI already exists
+    local existingScreenGui = game.Players.LocalPlayer.PlayerGui:FindFirstChild("RJ_GAME_UI")
+    if existingScreenGui then
+        return existingScreenGui  -- Return existing UI if it already exists
+    end
+
+    -- Instances:
+    local ScreenGui = Instance.new("ScreenGui")
+    local RJGAME = Instance.new("TextButton")
+    local UICorner = Instance.new("UICorner")
+
+    -- Properties:
+    ScreenGui.Name = "RJ_GAME_UI"
+    ScreenGui.Parent = game.Players.LocalPlayer.PlayerGui
+
+    RJGAME.Name = "RJ GAME"
+    RJGAME.Parent = ScreenGui
+    RJGAME.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    RJGAME.BackgroundTransparency = 0.550
+    RJGAME.BorderColor3 = Color3.fromRGB(0, 0, 0)
+    RJGAME.BorderSizePixel = 0
+    RJGAME.Position = UDim2.new(-0.000388114859, 0, 0.945812821, 0)  -- Center the button
+    RJGAME.Size = UDim2.new(0, 55, 0, 55)
+    RJGAME.Font = Enum.Font.SourceSansBold
+    RJGAME.Text = "R J"
+    RJGAME.TextColor3 = Color3.fromRGB(229, 229, 229)
+    RJGAME.TextSize = 22
+
+    UICorner.CornerRadius = UDim.new(0, 25)
+    UICorner.Parent = RJGAME
+
+    -- Function to create or reset the teleporting status BoolValue
+    local function createOrResetTeleportingStatus()
+        local teleportingStatus = game.Players.LocalPlayer:FindFirstChild("Teleporting")
+        if teleportingStatus then
+            teleportingStatus:Destroy()
+        end
+        teleportingStatus = Instance.new("BoolValue")
+        teleportingStatus.Name = "Teleporting"
+        teleportingStatus.Parent = game.Players.LocalPlayer
+        teleportingStatus.Value = false
+        return teleportingStatus
+    end
+
+    -- Initialize teleporting status
+    local teleportingStatus = createOrResetTeleportingStatus()
+
+    -- Function to handle button click:
+    local function onButtonClicked()
+        local Players = game:GetService("Players")
+        local TeleportService = game:GetService("TeleportService")
+        local PlaceId = game.PlaceId
+        local JobId = game.JobId
+
+        -- Check if the player is already teleporting
+        if teleportingStatus.Value then
+            warn("Player is already teleporting")
+            return
+        end
+
+        -- Set teleporting status to true
+        teleportingStatus.Value = true
+
+        -- Attempt to teleport the player
+        local success, errorMessage = pcall(function()
+            if #Players:GetPlayers() <= 1 then
+                Players.LocalPlayer:Kick("💀NOTHING💀")
+                wait(0.8)
+                TeleportService:Teleport(PlaceId, Players.LocalPlayer)
+            else
+                TeleportService:TeleportToPlaceInstance(PlaceId, JobId, Players.LocalPlayer)
+            end
+        end)
+
+        -- Handle teleportation errors
+        if not success then
+            warn("Teleportation failed:", errorMessage)
+            teleportingStatus.Value = false  -- Reset teleporting status on failure
+        end
+    end
+
+    -- Connect the function to the MouseButton1Click event of the TextButton
+    RJGAME.MouseButton1Click:Connect(onButtonClicked)
+
+    -- Return the ScreenGui to allow cleanup if needed
+    return ScreenGui
+end
+
+-- Function to handle character respawn
+local function onCharacterAdded(character)
+    -- Wait for the player's GUI to be initialized
+    character:WaitForChild("HumanoidRootPart")
+
+    -- Create or get the UI
+    createUI()
+end
+
+-- Connect to the character added event
+game.Players.LocalPlayer.CharacterAdded:Connect(onCharacterAdded)
+
+-- Initial call to create UI if character is already loaded
+if game.Players.LocalPlayer.Character then
+    onCharacterAdded(game.Players.LocalPlayer.Character)
+end
+
+
+
+
+--auto clicker
+local clickInterval = 0 -- Interwał czasowy pomiędzy kliknięciami (w sekundach)
+local toggleKey = Enum.KeyCode.V -- Klawisz do włączania/wyłączania auto-clickera
+
+local autoClicking = false -- Zmienna przechowująca stan auto-clickera
+
+-- Funkcja symulująca kliknięcie myszą
+local function autoClick()
+    local VirtualInputManager = game:GetService("VirtualInputManager")
+
+    while autoClicking do
+        wait(clickInterval)
+        
+        -- Sprawdź czy gracz jest obecny
+        if game.Players.LocalPlayer then
+            -- Symulowanie kliknięcia myszą
+            VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0) -- Użycie domyślnych współrzędnych
+            VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0) -- Użycie domyślnych współrzędnych
+        end
+    end
+    print("Auto-clicker stopped.")
+end
+
+-- Funkcja obsługująca wciśnięcie klawisza
+local function onKeyPress(input, gameProcessedEvent)
+    if input.KeyCode == toggleKey and not gameProcessedEvent then
+        autoClicking = not autoClicking
+        if autoClicking then
+            print("Auto-clicker started.")
+            spawn(autoClick) -- Uruchomienie auto-clickera w nowym wątku
+        end
+    end
+end
+
+-- Podłączenie funkcji do zdarzenia wciśnięcia klawisza
+game:GetService("UserInputService").InputBegan:Connect(onKeyPress)
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+
+local movementAndSpeedEnabled = false
+local hipHeightEnabled = false
+
+-- Function to toggle the hip height of the humanoid
+local function toggleHipHeight()
+    local character = Players.LocalPlayer.Character
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+
+    if humanoid then
+        if hipHeightEnabled then
+            humanoid.HipHeight = humanoid.HipHeight - 15
+        else
+            humanoid.HipHeight = humanoid.HipHeight + 15
+        end
+        hipHeightEnabled = not hipHeightEnabled
+    end
+end
+
+-- Function to toggle the movement and speed script
+local function toggleMovementAndSpeed()
+    movementAndSpeedEnabled = not movementAndSpeedEnabled
+    toggleHipHeight()
+end
+
+-- Connect keybinds and events
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+
+    if input.KeyCode == Enum.KeyCode.H then
+        toggleMovementAndSpeed()
+    end
+end)
+
+
+------leftalt-invs
+
+
+local rsrv = game:GetService("RunService")
+local heartbeat = rsrv.Heartbeat
+local renderstepped = rsrv.RenderStepped
+
+local lp = game.Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
+
+local isinvisible = false
+local visible_parts = {}
+
+local function ghost_parts()
+    for _, v in pairs(visible_parts) do
+        v.Transparency = v.Transparency == 0 and 0.2 or 0
+    end
+end
+
+local function setup_character()
+    local chr = lp.Character or lp.CharacterAdded:Wait()
+    local hum = chr:WaitForChild("Humanoid")
+    local root = hum.RootPart
+    
+    visible_parts = {}
+    for _, v in pairs(chr:GetDescendants()) do
+        if v:IsA("BasePart") and v.Transparency == 0 then
+            table.insert(visible_parts, v)
+        end
+    end
+    
+    local loop = heartbeat:Connect(function()
+        if isinvisible then
+            local oldcf = root.CFrame
+            local oldcamoffset = hum.CameraOffset
+
+            local newcf = oldcf * CFrame.new(0, 550, 0)
+
+            hum.CameraOffset = newcf:ToObjectSpace(CFrame.new(oldcf.Position)).Position
+            root.CFrame = newcf
+
+            renderstepped:Wait()
+
+            hum.CameraOffset = oldcamoffset
+            root.CFrame = oldcf
+        end
+    end)
+
+    _G.cons = {loop}
+end
+
+local kdown = UserInputService.InputBegan:Connect(function(input, isProcessed)
+    if not isProcessed and input.KeyCode == Enum.KeyCode.LeftAlt then
+        isinvisible = not isinvisible
+        ghost_parts()
+    end
+end)
+
+lp.CharacterAdded:Connect(function()
+    setup_character()
+    if isinvisible then
+        ghost_parts()
+    end
+end)
+
+setup_character()
+
+
+---tp ball leftctrl
+
+
+
+local Player = game.Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
+
+-- Function to move the parts to the player's position
+local function movePartsToPlayer()
+    local junkFolder = Workspace:FindFirstChild("Junk")
+    
+    if junkFolder and junkFolder:IsA("Folder") then
+        if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+            local playerPosition = Player.Character.HumanoidRootPart.Position
+            
+            for _, obj in pairs(junkFolder:GetDescendants()) do
+                if obj:IsA("BasePart") and (obj.Name == "kick1" or obj.Name == "kick2" or obj.Name == "kick3" or obj.Name == "Football") then
+                    print("Moving " .. obj.Name)
+                    obj.Position = playerPosition
+                    print(obj.Name .. " moved to player position")
+                end
+            end
+        else
+            print("Player character or HumanoidRootPart not found")
+        end
+    else
+        print("Junk folder not found in Workspace")
+    end
+end
+
+-- Connect input event
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+
+    if input.KeyCode == Enum.KeyCode.LeftControl or input.KeyCode == Enum.KeyCode.RightControl then
+        movePartsToPlayer()
+    end
+end)
+
+--TackleHitbox~hitbox loop set + gk size
+
+local UserInputService = game:GetService("UserInputService")
+local runService = game:GetService("RunService")
+
+local player = game.Players.LocalPlayer -- Używamy LocalPlayer
+local tackleHitbox, hitbox
+local isTackleActive = false
+local isHitboxActive = false
+local isGKActive = false -- Nowa zmienna do śledzenia stanu GK
+
+-- Ustawienia domyślnych rozmiarów
+local defaultTackleSize = Vector3.new(2.5703413486480713, 5.7297587394714355, 2.063832998275757) -- Domyślny rozmiar TackleHitbox
+local defaultHitboxSize = Vector3.new(4.521276473999023, 5.7297587394714355, 2.397878408432007) -- Domyślny rozmiar Hitbox
+local gkSize = Vector3.new(38, 21, 31) -- Rozmiar dla GK
+local activeSize = Vector3.new(500, 270, 2048) -- Rozmiar, gdy aktywny
+
+-- Funkcja do ustawienia rozmiaru
+local function setSize(hitbox, size)
+    if hitbox then
+        hitbox.Size = size
+    end
+end
+
+-- Funkcja do ustawienia kolorów i przezroczystości
+local function setHitboxProperties(hitbox, transparency, color)
+    if hitbox then
+        hitbox.Transparency = transparency -- Ustaw przezroczystość
+        hitbox.Color = color -- Ustaw kolor
+    end
+end
+
+-- Funkcja do aktualizacji pozycji hitboxa
+local function updateHitboxPosition(hitbox)
+    if hitbox and player.Character then
+        hitbox.Position = player.Character.HumanoidRootPart.Position -- Ustaw pozycję hitboxa na pozycję gracza
+    end
+end
+
+-- Funkcja do przenoszenia hitboxa po odrodzeniu
+local function onCharacterAdded(character)
+    tackleHitbox = character:WaitForChild("TackleHitbox") -- Znajdź TackleHitbox w nowym modelu gracza
+    hitbox = character:WaitForChild("Hitbox") -- Znajdź Hitbox w nowym modelu gracza
+    updateHitboxPosition(tackleHitbox) -- Ustaw pozycję TackleHitbox po odrodzeniu
+    updateHitboxPosition(hitbox) -- Ustaw pozycję Hitbox po odrodzeniu
+
+    -- Ustawienia po odrodzeniu
+    tackleHitbox.Size = defaultTackleSize -- Ustaw domyślny rozmiar TackleHitbox po respawnie
+    hitbox.Size = defaultHitboxSize -- Ustaw domyślny rozmiar Hitbox po respawnie
+    setHitboxProperties(hitbox, 1, Color3.new(1, 1, 1)) -- Ustaw domyślną przezroczystość (1) i kolor Hitbox (biały)
+end
+
+-- Pętla do aktualizacji rozmiaru
+local function loop()
+    while true do
+        if isTackleActive then
+            setSize(tackleHitbox, activeSize) -- Ustaw rozmiar TackleHitbox, gdy aktywny
+        end
+        
+        if isHitboxActive then
+            setSize(hitbox, activeSize) -- Ustaw rozmiar Hitbox, gdy aktywny
+        end
+        
+        -- Zastosuj rozmiar GK tylko dla Hitbox, gdy aktywny
+        if isGKActive then
+            setSize(hitbox, gkSize) -- Ustaw rozmiar Hitbox na rozmiar GK, gdy aktywny
+            setHitboxProperties(hitbox, 0.8, Color3.new(0, 0, 0)) -- Ustaw przezroczystość (0.8) i kolor Hitbox (czarny)
+        else
+            setHitboxProperties(hitbox, 1, Color3.new(1, 1, 1)) -- Ustaw domyślną przezroczystość (1) i kolor Hitbox (biały)
+        end
+
+        wait(0.001) -- Czas oczekiwania między zmianami
+    end
+end
+
+-- Obsługuje włączanie/wyłączanie TackleHitbox
+UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
+    if not gameProcessedEvent and input.KeyCode == Enum.KeyCode.Two then -- Zmień 'Two' na inny klawisz, jeśli chcesz
+        isTackleActive = not isTackleActive
+        if isTackleActive then
+            print("TackleHitbox activated") -- Print when toggled
+        else
+            setSize(tackleHitbox, defaultTackleSize) -- Set to default size when deactivated
+            print("TackleHitbox deactivated") -- Print when toggled
+        end
+    end
+end)
+
+-- Obsługuje włączanie/wyłączanie Hitbox
+UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
+    if not gameProcessedEvent and input.KeyCode == Enum.KeyCode.Three then -- Zmień 'Three' na inny klawisz, jeśli chcesz
+        isHitboxActive = not isHitboxActive
+        if isHitboxActive then
+            print("Hitbox activated") -- Print when toggled
+        else
+            setSize(hitbox, defaultHitboxSize) -- Set to default size when deactivated
+            setHitboxProperties(hitbox, 1, Color3.new(1, 1, 1)) -- Reset properties to default (transparent and white)
+            print("Hitbox deactivated") -- Print when toggled
+        end
+        
+        -- Dezaktywuj GK, jeśli był aktywowany
+        if isGKActive then
+            isGKActive = false -- Dezaktywuj GK
+            setSize(hitbox, defaultHitboxSize) -- Resetuj rozmiar do domyślnego
+            setHitboxProperties(hitbox, 1, Color3.new(1, 1, 1)) -- Resetuj właściwości do domyślnych
+            print("GK size deactivated for Hitbox") -- Print when toggled
+        end
+    end
+end)
+
+-- Obsługuje włączanie/wyłączanie GK (rozmiar 38, 21, 10) dla Hitbox
+UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
+    if not gameProcessedEvent and input.KeyCode == Enum.KeyCode.Four then -- Zmień 'Four' na inny klawisz, jeśli chcesz
+        isGKActive = not isGKActive
+        
+        -- Dezaktywuj Hitbox, jeśli był aktywowany
+        if isHitboxActive then
+            isHitboxActive = false -- Dezaktywuj Hitbox
+            setSize(hitbox, defaultHitboxSize) -- Ustaw domyślny rozmiar Hitbox
+            setHitboxProperties(hitbox, 1, Color3.new(1, 1, 1)) -- Resetuj właściwości do domyślnych
+            print("Hitbox deactivated due to GK activation") -- Print when toggled
+        end
+        
+        if isGKActive then
+            print("GK size activated for Hitbox") -- Print when toggled
+            setSize(hitbox, gkSize) -- Ustaw rozmiar Hitbox na rozmiar GK
+            setHitboxProperties(hitbox, 0.8, Color3.new(0, 0, 0)) -- Ustaw przezroczystość (0.8) i kolor Hitbox (czarny)
+        else
+            print("GK size deactivated for Hitbox") -- Print when toggled
+            setSize(hitbox, defaultHitboxSize) -- Ustaw domyślny rozmiar Hitbox, gdy deaktywowany
+            setHitboxProperties(hitbox, 1, Color3.new(1, 1, 1)) -- Resetuj właściwości do domyślnych (przezroczystość 1 i kolor biały)
+        end
+    end
+end)
+
+-- Nasłuchuje na zmiany w modelu postaci
+player.CharacterAdded:Connect(onCharacterAdded)
+
+-- Uruchom pętlę
+if player.Character then
+    tackleHitbox = player.Character:WaitForChild("TackleHitbox") -- Ustaw tackleHitbox przy początkowym załadowaniu
+    hitbox = player.Character:WaitForChild("Hitbox") -- Ustaw Hitbox przy początkowym załadowaniu
+    updateHitboxPosition(tackleHitbox) -- Ustaw początkową pozycję TackleHitbox
+    updateHitboxPosition(hitbox) -- Ustaw początkową pozycję Hitbox
+end
+
+-- Uruchom pętlę w nowym wątku
+coroutine.wrap(loop)()
+
+
+
+
+--gol| z awey | x home
+
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local userInputService = game:GetService("UserInputService")
+local replicatedStorage = game:GetService("ReplicatedStorage")
+
+-- Unique identifier for this specific functionality
+local UNIQUE_EVENT_NAME = "UpdateBallPosition_Specific"
+
+-- Function to find the ball in the Junk folder
+local function findBall()
+    local junkFolder = game.Workspace:FindFirstChild("Junk")
+    if junkFolder then
+        local football = junkFolder:FindFirstChild("Football") -- Adjusting to the new folder structure
+        if football and football:IsA("Part") then
+            return football
+        end
+    end
+    return nil
+end
+
+-- Function to return the ball to the specific coordinates
+local function returnBall(targetPosition)
+    local ball = findBall()
+    if ball then
+        -- Tween the ball to the target position
+        local tweenService = game:GetService("TweenService")
+        local tweenInfo = TweenInfo.new(0.001, Enum.EasingStyle.Linear) -- Extremely short duration
+        local goal = {Position = targetPosition}
+
+        local tween = tweenService:Create(ball, tweenInfo, goal)
+        tween:Play()
+        
+        -- Update the ball's position in ReplicatedStorage
+        local remoteEvent = replicatedStorage:FindFirstChild(UNIQUE_EVENT_NAME)
+        if remoteEvent then
+            remoteEvent:FireServer(targetPosition)
+        else
+            warn(UNIQUE_EVENT_NAME .. " event not found in ReplicatedStorage")
+        end
+    else
+        print("ahh not found Football X_X")
+    end
+end
+
+
+userInputService.InputBegan:Connect(function(input, gameProcessed)
+    if input.KeyCode == Enum.KeyCode.X and not gameProcessed then
+        local targetPosition = Vector3.new(-0.214612424, 4.00001144, 186.203613) -- New position for '1'
+        returnBall(targetPosition)
+    end
+end)
+
+
+userInputService.InputBegan:Connect(function(input, gameProcessed)
+    if input.KeyCode == Enum.KeyCode.Z and not gameProcessed then
+        local targetPosition = Vector3.new(2.010676682, 4.00001144, -186.170898) -- New position for '2'
+        returnBall(targetPosition)
+    end
+end)
+
+---tp ball instan loop One
+
+local Player = game.Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+
+-- Flag to control the teleport loop
+local teleporting = false
+
+-- Function to move the parts to the player's position
+local function movePartsToPlayer()
+    local junkFolder = Workspace:FindFirstChild("Junk")
+
+    if junkFolder and junkFolder:IsA("Folder") then
+        local playerChar = Player.Character
+        local playerHumanoidRootPart = playerChar and playerChar:FindFirstChild("HumanoidRootPart")
+        
+        if playerHumanoidRootPart then
+            local playerPosition = playerHumanoidRootPart.Position
+
+            for _, obj in ipairs(junkFolder:GetDescendants()) do
+                if obj:IsA("BasePart") and (obj.Name == "kick1" or obj.Name == "kick2" or obj.Name == "kick3" or obj.Name == "Football") then
+                    obj.CFrame = CFrame.new(playerPosition)  -- Use CFrame for better accuracy
+                end
+            end
+        end
+    end
+end
+
+-- Toggle teleportation on key press
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+
+    if input.KeyCode == Enum.KeyCode.One then
+        teleporting = not teleporting
+        print(teleporting and "Teleportation started" or "Teleportation stopped")
+    end
+end)
+
+-- Continuously teleport parts to player position if the flag is set
+RunService.RenderStepped:Connect(function()
+    if teleporting then
+        movePartsToPlayer()
+    end
+end)
+
+---ball esp
+
+
+local ESP = nil
+local JunkFolder = nil
+local Football = nil
+
+-- Funkcja tworząca efekt ESP w kształcie sfery wokół obiektu Football
+local function createESP(football)
+    -- Usunięcie poprzedniego ESP, jeśli istnieje
+    if ESP then
+        ESP:Destroy()
+    end
+
+    -- Tworzenie nowego ESP w kształcie sfery
+    ESP = Instance.new("SphereHandleAdornment")
+    ESP.Radius = football.Size.Magnitude * 0.28 -- Ustawienie promienia ESP na 55% długości przekątnej obiektu Football
+    ESP.AlwaysOnTop = true
+    ESP.ZIndex = 5
+    ESP.Transparency = 0.5
+    ESP.Color3 = Color3.fromRGB(192, 192, 192) -- Ustawienie koloru na szary (RGB: 192, 192, 192)
+    ESP.Adornee = football -- Określenie obiektu, do którego ma być przyczepione ESP
+    ESP.AdornCullingMode = Enum.AdornCullingMode.Never -- Wyłączenie przycinania (usuwanie) części ESP, które są wewnątrz obiektu
+    ESP.Parent = football -- Ustawienie rodzica ESP
+end
+
+-- Funkcja śledzenia obiektu Football w folderze Junk
+local function trackFootball()
+    while true do
+        JunkFolder = game.Workspace:FindFirstChild("Junk")
+        if JunkFolder then
+            Football = JunkFolder:FindFirstChild("Football")
+            if Football then
+                createESP(Football) -- Stworzenie lub aktualizacja ESP wokół obiektu Football
+            end
+        end
+        wait(0.1) -- Poczekanie 0.1 sekundy przed ponownym sprawdzeniem
+    end
+end
+
+-- Rozpoczęcie śledzenia Footballa
+trackFootball()
+
+
+
